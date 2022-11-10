@@ -1,17 +1,10 @@
 numpy
-imageio
-jupyterlab
-keras
 matplotlib
 numpy
-opencv-python
 pandas
-pillow
 plotly
-pyoints
 scikit-learn
 scipy
-seaborn
 tensorflow
 tqdm
 trimesh

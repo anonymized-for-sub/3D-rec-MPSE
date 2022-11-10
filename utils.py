@@ -1,23 +1,15 @@
 import numpy as np
 import plotly.graph_objs as go
-import cv2
 from tqdm import tqdm
 import itertools
-# import open3d as o3d
-import io
 import os
-from PIL import Image
 import tensorflow as tf
 import copy
 import pandas as pd
-from pyoints import (
-    storage,
-    Extent,
-    transformation,
-    filters,
-    registration,
-    normals,
-)
+# from pyoints import (
+#     transformation,
+#     registration,
+# )
 import trimesh
 from functools import cache
 from scipy.spatial.distance import cdist
@@ -526,26 +518,6 @@ def create_rotated_points(points):
         ])
         yield from [apply_rotation(points, rot_mat) for rot_mat in [rot_mat1, rot_mat2, rot_mat3]]
         
-# def draw_registration_result(source, target, transformation):
-#     source_temp = copy.deepcopy(source)
-#     target_temp = copy.deepcopy(target)
-#     source_temp.paint_uniform_color([1, 0.706, 0])
-#     target_temp.paint_uniform_color([0, 0.651, 0.929])
-#     source_temp.transform(transformation)
-#     o3d.visualization.draw_geometries([source_temp, target_temp])
-    
-# def convert_open3D_pcd(points):
-#     pcd = o3d.geometry.PointCloud()
-#     pcd.points = o3d.utility.Vector3dVector(points)
-#     return pcd
-
-def plotly_fig2array(fig):
-    #convert Plotly fig to  an array
-    fig_bytes = fig.to_image(format="png")
-    buf = io.BytesIO(fig_bytes)
-    img = Image.open(buf)
-    return np.asarray(img)
-
 
 # Calculate reconstruction metrics
 def t_to_homo(mat):
@@ -640,66 +612,37 @@ def get_svd_trans(X, Y, dist_agg_fn=None):
         
     return T, dist_agg_fn(np.linalg.norm(apply_transformation(X,T) - Y, axis=1))
 
-# def get_icp_trans_mat(points_a, points_b, d_th=80, max_iter=1000, max_change_ratio=0.000001):
-#     coords_dict = {
-#         'Embedding': points_a,
-#         'GT': points_b,
-#     }
-#     # First, we initialize an ICP object. 
-#     # The algorithm iteratively matches the ‘k’ closest points. 
-#     # To limit the ratio of mismatched points, the ‘radii’ parameter is provided. It defines an ellipsoid within points can be assigned.
-#     radii = [d_th, d_th, d_th]
-#     icp = registration.ICP(
-#         radii,
-#         max_iter=max_iter,
-#         max_change_ratio=max_change_ratio,
-#         # max_change_ratio=0.01,
-#         k=1,
-#     )
+# def get_icp_trans_mat_by_random_rotation(points_a, points_b, d_th=80, max_iter=1000, max_change_ratio=0.000001):
+#     best_match = None
+#     for rotated_points in tqdm(list(reversed(list(create_rotated_points(points_a)))), desc="ICP"):
+#         coords_dict = {
+#             'Embedding': rotated_points,
+#             'GT': points_b,
+#         }
+#         # First, we initialize an ICP object. 
+#         # The algorithm iteratively matches the ‘k’ closest points. 
+#         # To limit the ratio of mismatched points, the ‘radii’ parameter is provided. It defines an ellipsoid within points can be assigned.
+#         radii = [d_th, d_th, d_th]
+#         icp = registration.ICP(
+#             radii,
+#             max_iter=max_iter,
+#             max_change_ratio=max_change_ratio,
+#             # max_change_ratio=0.01,
+#             k=1,
+#         )
 
-#     T_dict, pairs_dict, report = icp(coords_dict)
+#         T_dict, pairs_dict, report = icp(coords_dict)
 
-#     embedding_trans = np.dot(np.linalg.inv(T_dict['GT']), T_dict['Embedding'])
-    
-    
-#     aligned_a = apply_transformation(points_a, embedding_trans)
-    
-#     loss = np.linalg.norm(aligned_a - points_b, axis=1)
-#     loss = np.sqrt(np.mean(loss*loss))
+#         aligned_embedding1 = transformation.transform(coords_dict['Embedding'], T_dict['Embedding'])
+#         aligned_GT1 = transformation.transform(coords_dict['GT'], T_dict['GT'])
 
-#     return embedding_trans, loss
-
-def get_icp_trans_mat_by_random_rotation(points_a, points_b, d_th=80, max_iter=1000, max_change_ratio=0.000001):
-    best_match = None
-    for rotated_points in tqdm(list(reversed(list(create_rotated_points(points_a)))), desc="ICP"):
-        coords_dict = {
-            'Embedding': rotated_points,
-            'GT': points_b,
-        }
-        # First, we initialize an ICP object. 
-        # The algorithm iteratively matches the ‘k’ closest points. 
-        # To limit the ratio of mismatched points, the ‘radii’ parameter is provided. It defines an ellipsoid within points can be assigned.
-        radii = [d_th, d_th, d_th]
-        icp = registration.ICP(
-            radii,
-            max_iter=max_iter,
-            max_change_ratio=max_change_ratio,
-            # max_change_ratio=0.01,
-            k=1,
-        )
-
-        T_dict, pairs_dict, report = icp(coords_dict)
-
-        aligned_embedding1 = transformation.transform(coords_dict['Embedding'], T_dict['Embedding'])
-        aligned_GT1 = transformation.transform(coords_dict['GT'], T_dict['GT'])
-
-        if not best_match or report['RMSE'][-1] < best_match['RMSE']:
-            best_match = {
-                'RMSE': report['RMSE'][-1],
-                'aligned_points_a': aligned_embedding1,
-                'aligned_points_b': aligned_GT1,
-                'trans_mat_points_a': T_dict['Embedding'],
-                'trans_mat_points_b': T_dict['GT'],
-            }
+#         if not best_match or report['RMSE'][-1] < best_match['RMSE']:
+#             best_match = {
+#                 'RMSE': report['RMSE'][-1],
+#                 'aligned_points_a': aligned_embedding1,
+#                 'aligned_points_b': aligned_GT1,
+#                 'trans_mat_points_a': T_dict['Embedding'],
+#                 'trans_mat_points_b': T_dict['GT'],
+#             }
             
-    return best_match
+#     return best_match
