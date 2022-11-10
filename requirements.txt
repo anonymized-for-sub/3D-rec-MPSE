@@ -1,4 +1,4 @@
-gdal
+numpy
 imageio
 jupyterlab
 keras
