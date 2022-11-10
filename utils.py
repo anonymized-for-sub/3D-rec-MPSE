@@ -11,7 +11,6 @@ import pandas as pd
 #     registration,
 # )
 import trimesh
-from functools import cache
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 from sklearn.manifold import MDS
@@ -64,7 +63,6 @@ def load_dataset(dataset, n_points=1024):
         
     return points
 
-@cache
 def load_modelnet():
     return tf.keras.utils.get_file(
         "modelnet.zip",

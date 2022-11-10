@@ -8,3 +8,4 @@ scipy
 tensorflow
 tqdm
 trimesh
+networkx
